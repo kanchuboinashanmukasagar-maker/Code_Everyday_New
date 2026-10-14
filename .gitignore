@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+auth.db
+*.exe
+*.o
+*.class
+.DS_Store
+Thumbs.db
+node_modules/
+.vscode/
+.idea/

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Everyday • Daily Challenges & Streaks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="theme-dark">
+  <!-- Interactive Canvas Particle Background -->
+  <canvas id="particleCanvas" class="particle-canvas" aria-hidden="true"></canvas>
+
+  <!-- Ambient Glowing Aurora Orbs -->
+  <div class="ambient-glow glow-1" aria-hidden="true"></div>
+  <div class="ambient-glow glow-2" aria-hidden="true"></div>
+  <div class="ambient-glow glow-3" aria-hidden="true"></div>
+
+  <!-- Dashboard Layout -->
+  <div class="dashboard-container">
+    
+    <!-- Top Navigation Bar -->
+    <nav class="dash-navbar">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        <span class="brand-name">Code<span class="gradient-text">Everyday</span></span>
+      </div>
+
+      <!-- Navigation Center Tabs -->
+      <div class="dash-nav-links" role="tablist">
+        <button class="dash-nav-tab active" id="tabDaily" role="tab" aria-selected="true">
+          <span class="tab-badge-pulse" aria-hidden="true"></span>
+          <span>Today's Question</span>
+        </button>
+        <button class="dash-nav-tab" id="tabPractice" role="tab" aria-selected="false">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+          <span>Practice Problems</span>
+        </button>
+        <button class="dash-nav-tab" id="tabProfile" role="tab" aria-selected="false">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          <span>Profile</span>
+        </button>
+      </div>
+
+      <!-- Actions & Streak Indicator -->
+      <div class="dash-nav-actions">
+        <!-- Live Burning Streak Flame Pill -->
+        <div class="streak-pill" id="streakBadge" title="Consecutive Daily Streak (Solve today's question to increase!)">
+          <span class="flame-icon">🔥</span>
+          <span id="streakCount">{{ user.current_streak or 0 }}</span>
+          <span>Days</span>
+        </div>
+
+        <!-- Theme Switcher -->
+        <button id="themeToggle" class="icon-btn" title="Toggle Theme" aria-label="Toggle Theme">
+          <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+          </svg>
+          <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+
+        <!-- Logout Button -->
+        <button type="button" class="icon-btn" id="logoutBtn" title="Sign Out" aria-label="Sign Out">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </button>
+      </div>
+    </nav>
+
+    <!-- ====================================================================
+         SECTION 1: TODAY'S QUESTION
+         ==================================================================== -->
+    <section class="dash-section active" id="sectionDaily">
+      <div class="daily-grid">
+        
+        <!-- Left Column: Problem Details Card -->
+        <div class="challenge-card">
+          <div class="challenge-header">
+            <div>
+              <div class="challenge-meta-row">
+                <span class="diff-badge diff-{{ daily_problem.difficulty | lower if daily_problem else 'easy' }}" id="dailyProblemDifficulty">
+                  {{ daily_problem.difficulty if daily_problem else 'Easy' }}
+                </span>
+                <span class="category-chip" id="dailyProblemCategory">
+                  {{ daily_problem.category if daily_problem else 'Algorithms' }}
+                </span>
+                <span class="category-chip" id="dailyProblemHiddenCount" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.3);">
+                  🔒 {{ daily_problem.hidden_test_cases_count if daily_problem and daily_problem.hidden_test_cases_count is defined else 3 }} Hidden Tests
+                </span>
+                <span style="font-size: 0.75rem; color: var(--accent-indigo); font-weight: 700;">DAILY CHALLENGE</span>
+              </div>
+              <h1 class="challenge-title" id="dailyProblemTitle">
+                {{ daily_problem.title if daily_problem else 'Two Sum' }}
+              </h1>
+            </div>
+
+            <!-- Countdown to Next Midnight Question -->
+            <div class="countdown-box" title="Next daily question arrives at midnight">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              <span id="dailyCountdown">--h --m --s</span>
+            </div>
+          </div>
+
+          <div class="challenge-body" id="dailyProblemDesc">
+            {{ daily_problem.description if daily_problem else 'Solve the problem and verify against automated test cases.' }}
+          </div>
+
+          <!-- Sample Input/Output -->
+          <div class="io-preview-card">
+            <div class="io-preview-title">Sample Input</div>
+            <code class="io-preview-code" id="dailySampleInput">{{ daily_problem.sample_input if daily_problem else 'nums = [2, 7, 11, 15], target = 9' }}</code>
+          </div>
+
+          <div class="io-preview-card">
+            <div class="io-preview-title">Expected Output</div>
+            <code class="io-preview-code" id="dailySampleOutput">{{ daily_problem.sample_output if daily_problem else '[0, 1]' }}</code>
+          </div>
+
+          <div style="font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            <span>Solving today's challenge automatically increments your streak by +1!</span>
+          </div>
+        </div>
+
+        <!-- Right Column: Interactive Code Editor & Test Console -->
+        <div class="editor-card">
+          <div class="editor-toolbar">
+            <div class="editor-lang">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+              <select id="languageSelect" class="lang-select" aria-label="Select Programming Language">
+                <option value="python" selected>Python 3</option>
+                <option value="c">C (GCC)</option>
+                <option value="cpp">C++ (G++)</option>
+                <option value="java">Java (OpenJDK)</option>
+              </select>
+            </div>
+            <button type="button" class="btn-demo" id="btnResetCode">Reset Starter</button>
+          </div>
+
+          <!-- Code Textarea -->
+          <textarea id="dailyCodeEditor" class="code-textarea" spellcheck="false">{{ daily_problem.starter_code if daily_problem else 'def solution():\n    # Write your solution here\n    pass' }}</textarea>
+
+          <!-- Action Buttons -->
+          <div class="editor-actions">
+            <button type="button" class="btn-run" id="btnRunDaily">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              <span>Run Code</span>
+            </button>
+            <button type="button" class="btn-submit-daily" id="btnSubmitDaily">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Submit & Update Streak</span>
+            </button>
+          </div>
+
+          <!-- Test Cases Console Panel -->
+          <div class="console-panel" id="testConsole" style="display: none;">
+            <div class="console-header">
+              <span>Test Case Evaluation</span>
+            </div>
+            <div class="test-cases-list" id="testResultsList"></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SECTION 2: PRACTICE PROBLEMS BANK
+         ==================================================================== -->
+    <section class="dash-section" id="sectionPractice">
+      <!-- Search & Difficulty Filters Bar -->
+      <div class="problems-filter-bar">
+        <div class="filter-search-wrap">
+          <svg class="filter-search-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="practiceSearchInput" class="filter-search-input" placeholder="Search problems by name or category...">
+        </div>
+
+        <div class="filter-chips">
+          <button type="button" class="filter-chip-btn active" data-filter="all">All</button>
+          <button type="button" class="filter-chip-btn" data-filter="easy">Easy</button>
+          <button type="button" class="filter-chip-btn" data-filter="medium">Medium</button>
+          <button type="button" class="filter-chip-btn" data-filter="hard">Hard</button>
+          <button type="button" class="filter-chip-btn" data-filter="solved">Solved</button>
+          <button type="button" class="filter-chip-btn" data-filter="unsolved">Unsolved</button>
+        </div>
+      </div>
+
+      <!-- Problem Bank Table Card -->
+      <div class="problems-table-card">
+        <table class="problems-table">
+          <thead>
+            <tr>
+              <th style="width: 44px;">Status</th>
+              <th>Problem Title</th>
+              <th>Category</th>
+              <th>Difficulty</th>
+              <th style="text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="problemsTableBody">
+            <tr>
+              <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading problem bank...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SECTION 3: PROFILE & GEMINI AI CONFIGURATION
+         ==================================================================== -->
+    <section class="dash-section" id="sectionProfile">
+      <div class="profile-view-grid">
+        
+        <!-- Left Card: User & Streak Overview -->
+        <div class="profile-card">
+          <div class="profile-header-meta">
+            <div class="user-avatar-lg">
+              {{ user.name[0] | upper }}
+            </div>
+            <div>
+              <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary);">{{ user.name }}</h2>
+              <p style="font-size: 0.85rem; color: var(--text-secondary);">{{ user.email }}</p>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">Member since {{ user.created_at[:10] if user.created_at else '2026' }}</span>
+            </div>
+          </div>
+
+          <!-- Streak Metrics -->
+          <div class="streak-stats-row">
+            <div class="stat-metric-card">
+              <span class="stat-metric-num" id="profileStreakCurrent">{{ user.current_streak or 0 }} 🔥</span>
+              <span class="stat-metric-label">Current Streak</span>
+            </div>
+            <div class="stat-metric-card">
+              <span class="stat-metric-num" id="profileStreakMax">{{ user.max_streak or 0 }} ⚡</span>
+              <span class="stat-metric-label">Best Streak</span>
+            </div>
+          </div>
+
+          <!-- Difficulty Progress Bars -->
+          <div>
+            <h3 style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 1rem;">Problems Solved</h3>
+            
+            <div class="diff-progress-item">
+              <div class="diff-progress-meta">
+                <span style="color: #10b981;">Easy</span>
+                <span id="easySolvedText">0 Solved</span>
+              </div>
+              <div class="diff-progress-bar">
+                <div class="diff-progress-fill fill-easy" id="easyProgressFill" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <div class="diff-progress-item">
+              <div class="diff-progress-meta">
+                <span style="color: #f59e0b;">Medium</span>
+                <span id="mediumSolvedText">0 Solved</span>
+              </div>
+              <div class="diff-progress-bar">
+                <div class="diff-progress-fill fill-medium" id="mediumProgressFill" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <div class="diff-progress-item">
+              <div class="diff-progress-meta">
+                <span style="color: #ef4444;">Hard</span>
+                <span id="hardSolvedText">0 Solved</span>
+              </div>
+              <div class="diff-progress-bar">
+                <div class="diff-progress-fill fill-hard" id="hardProgressFill" style="width: 0%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Card: Gemini AI Key Configuration & Recent Submissions -->
+        <div class="profile-card">
+          <!-- Gemini AI Key Settings Box -->
+          <div class="gemini-config-card">
+            <div class="gemini-config-header">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+              <span>Google Gemini AI Configuration</span>
+            </div>
+            <p style="font-size: 0.825rem; color: var(--text-secondary); line-height: 1.45;">
+              Enter your Gemini API key below. The backend will automatically use Gemini to craft new programming challenges every single day!
+            </p>
+            <div class="input-wrapper">
+              <input type="password" id="geminiKeyInput" class="form-input" style="padding-left: 1rem;" placeholder="{% if has_gemini_key %}•••••••••••••••••••• (Gemini 2.5 Flash Active){% else %}Paste your Gemini API key (AQ...){% endif %}">
+            </div>
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+              <button type="button" class="btn-primary" id="btnSaveGeminiKey" style="height: 40px; font-size: 0.85rem; width: auto; padding: 0 1.25rem;">
+                <span>Save API Key</span>
+              </button>
+              <button type="button" class="btn-gemini-generate" id="btnGenerateAINow">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg>
+                <span>Generate New Problem Now</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Recent Submissions List -->
+          <div>
+            <h3 style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.85rem;">Recent Submissions</h3>
+            <div class="test-cases-list" id="recentSubmissionsList">
+              <div style="padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">Loading submissions...</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ====================================================================
+       STREAK CELEBRATION MODAL
+       ==================================================================== -->
+  <div class="streak-modal-backdrop" id="streakModal" role="dialog" aria-modal="true" aria-labelledby="streakModalTitle">
+    <div class="streak-celebration-card">
+      <div class="big-flame">🔥</div>
+      <h2 id="streakModalTitle" style="font-size: 1.6rem; font-weight: 800; color: #f59e0b; margin-bottom: 0.5rem;">Daily Challenge Complete!</h2>
+      <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">
+        Your consecutive day streak has increased to <strong style="color: var(--text-primary); font-size: 1.15rem;" id="modalStreakNumber">1</strong> days!
+      </p>
+      <button type="button" class="btn-primary" id="closeStreakModal" style="margin: 0 auto; max-width: 200px;">
+        <span>Keep It Up!</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast Notification Stack -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- Pass Initial Daily Problem ID & Starter Codes to JS -->
+  <script>
+    window.INITIAL_DAILY_PROBLEM_ID = {{ daily_problem.id if daily_problem else 1 }};
+    window.INITIAL_STARTER_CODES = {{ (daily_problem.starter_codes if daily_problem and daily_problem.starter_codes is defined else {}) | tojson }};
+  </script>
+
+  <!-- Scripts -->
+  <script src="{{ url_for('static', filename='js/particles.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+  <script>
+    // Theme toggle & Sign out
+    document.addEventListener('DOMContentLoaded', () => {
+      const themeToggle = document.getElementById('themeToggle');
+      const logoutBtn = document.getElementById('logoutBtn');
+
+      const savedTheme = localStorage.getItem('portal_theme') || 'dark';
+      if (savedTheme === 'light') {
+        document.body.classList.remove('theme-dark');
+        document.body.classList.add('theme-light');
+      }
+
+      themeToggle?.addEventListener('click', () => {
+        const isLight = document.body.classList.contains('theme-light');
+        const newTheme = isLight ? 'dark' : 'light';
+        if (newTheme === 'light') {
+          document.body.classList.remove('theme-dark');
+          document.body.classList.add('theme-light');
+        } else {
+          document.body.classList.remove('theme-light');
+          document.body.classList.add('theme-dark');
+        }
+        localStorage.setItem('portal_theme', newTheme);
+      });
+
+      logoutBtn?.addEventListener('click', async () => {
+        try {
+          const res = await fetch('/api/auth/logout', { method: 'POST' });
+          const data = await res.json();
+          window.location.href = data.redirect || '/';
+        } catch (e) {
+          window.location.href = '/';
+        }
+      });
+    });
+  </script>
+</body>
+</html>
